@@ -1,0 +1,32 @@
+{
+  "name": "fastify-arrow",
+  "version": "0.0.1",
+  "description": "A Fastify plugin for sending and receiving Apache Arrow data",
+  "main": "index.js",
+  "scripts": {
+    "test": "tap test/test-*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trxcllnt/fastify-arrow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/trxcllnt/fastify-arrow/issues"
+  },
+  "homepage": "https://github.com/trxcllnt/fastify-arrow#readme",
+  "dependencies": {
+    "apache-arrow": "graphistry/arrow#ee546b82b5faca48eaea129b2e85b2a179e2e840",
+    "fastify-multipart": "^0.5.1",
+    "fastify-plugin": "^1.4.0",
+    "ix": "^2.3.5"
+  },
+  "devDependencies": {
+    "fastify": "^2.0.0-rc.3",
+    "form-data": "^2.3.3",
+    "randomatic": "^3.1.1",
+    "tap": "^12.1.1"
+  }
+}
