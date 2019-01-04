@@ -21,7 +21,7 @@
     "apache-arrow": "graphistry/arrow#ee546b82b5faca48eaea129b2e85b2a179e2e840",
     "fastify-multipart": "^0.5.1",
     "fastify-plugin": "^1.4.0",
-    "ix": "^2.3.5"
+    "ix": "^2.4.3"
   },
   "devDependencies": {
     "fastify": "^2.0.0-rc.3",
