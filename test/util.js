@@ -3,7 +3,8 @@ const {
     Schema, Field, Table, RecordBatch,
     Utf8, Utf8Vector,
     Float32, FloatVector,
-    util: { createElementComparator }
+    util: { createElementComparator },
+    RecordBatchStreamWriter
 } = require('apache-arrow');
 
 module.exports = {
@@ -90,4 +91,28 @@ function compareVectors(actual, expected) {
             }
         }
     })();
+}
+
+if (require.main === module) {
+
+    RecordBatchStreamWriter.writeAll(demoData()).pipe(process.stdout);
+
+    function* demoData(batchLen = 10, numBatches = 5) {
+        const rand = Math.random.bind(Math);
+        const randstr = ((randomatic, opts) =>
+            (len) => randomatic('?', len, opts)
+        )(require('randomatic'), { chars: `abcdefghijklmnopqrstuvwxyz0123456789_` });
+    
+        let schema;
+        for (let i = -1; ++i < numBatches;) {
+            const str = new Array(batchLen);
+            const num = new Float32Array(batchLen);
+            (() => {
+                for (let i = -1; ++i < batchLen; str[i] = randstr((num[i] = rand() * (2 ** 4)) | 0));
+            })();
+            const columns = [Utf8Vector.from(str), FloatVector.from(num)];
+            schema || (schema = Schema.from(columns, ['strings', 'floats']));
+            yield new RecordBatch(schema, batchLen, columns);
+        }
+    }
 }
