@@ -22,8 +22,7 @@ test('it should reply with a table', async (t) => {
         .get('/', (req, reply) => {
             RecordBatchStreamWriter
                 .writeAll(expected)
-                .toReadableNodeStream({ objectMode: false })
-                .pipe(reply.asStream({ objectMode: false }))
+                .pipe(reply.stream())
         })
         .inject({ url: `/`, method: `GET`, headers: getHeaders })
         .then((res) => {
@@ -42,12 +41,11 @@ test('it should reply with multiple tables', async (t) => {
             AsyncIterable
                 .from(expected)
                 .flatMap(RecordBatchStreamWriter.writeAll)
-                .pipe(reply.asStream({ objectMode: false }))
+                .pipe(reply.stream({ objectMode: false }))
         })
         .inject({ url: `/`, method: `GET`, headers: getHeaders })
         .then((res) => {
-            const reader = RecordBatchReader.from(res.rawPayload);
-            while (!(reader.reset().open(false)).closed) {
+            for (const reader of RecordBatchReader.readAll(res.rawPayload)) {
                 compareTables(expected.shift(), Table.from(reader));
             }
             t.strictEqual(res.headers['content-type'], 'application/octet-stream');
@@ -66,7 +64,7 @@ test(`it should accept a table and respond with a different one`, async (t) => {
             request.recordBatches()
                 .map(Table.from).map(averageFloatCols)
                 .flatMap(RecordBatchStreamWriter.writeAll)
-                .pipe(reply.asStream({ objectMode: false }));
+                .pipe(reply.stream({ objectMode: false }));
         })
         .inject({ url: `/`, method: `POST`, headers: postHeaders, payload })
         .then((res) => {

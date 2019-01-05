@@ -22,7 +22,7 @@ test(`it should read a table as multipart/form-data`, async (t) => {
                 .map((actual) => compareTables(expected, actual))
                 .map((_, index) => index === 0 ? 'pass' : 'fail')
                 .catch(AsyncIterable.as.bind(0, 'fail')).takeLast(1)
-                .pipe(reply.type('text/plain; charset=utf-8').asStream());
+                .pipe(reply.type('text/plain; charset=utf-8').stream());
         })
         .inject({ ...POST_TABLE, payload: form, headers: form.getHeaders() })
         .then((res) => {
@@ -47,7 +47,7 @@ test(`it should read multiple tables as multipart/form-data`, async (t) => {
                 .map((actual, i) => compareTables(expected[i], actual))
                 .map((_, index) => index === 1 ? 'pass' : 'fail')
                 .catch(AsyncIterable.as.bind(0, 'fail')).takeLast(1)
-                .pipe(reply.type('text/plain; charset=utf-8').asStream());;
+                .pipe(reply.type('text/plain; charset=utf-8').stream());
         })
         .inject({ ...POST_TABLE, payload: form, headers: form.getHeaders() })
         .then((res) => {

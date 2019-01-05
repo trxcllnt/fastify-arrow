@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/trxcllnt/fastify-arrow#readme",
   "dependencies": {
-    "apache-arrow": "graphistry/arrow#ee546b82b5faca48eaea129b2e85b2a179e2e840",
+    "apache-arrow": "graphistry/arrow#d6359942eb9c561c734835a52b9ccaf213f4d943",
     "fastify-multipart": "^0.5.1",
     "fastify-plugin": "^1.4.0",
     "ix": "^2.4.3"

@@ -19,7 +19,7 @@ test(`it should read a table as an octet stream`, async (t) => {
                 .map((actual) => compareTables(expected, actual))
                 .map((_, index) => index === 0 ? 'pass' : 'fail')
                 .catch(AsyncIterable.as.bind(0, 'fail')).takeLast(1)
-                .pipe(reply.type('text/plain; charset=utf-8').asStream());
+                .pipe(reply.type('text/plain; charset=utf-8').stream());
         })
         .inject({ ...POST_TABLE, payload }).then((res) => {
             t.strictEqual(res.headers['content-type'], 'text/plain; charset=utf-8');
@@ -40,7 +40,7 @@ test(`it should read multiple tables as an octet stream`, async (t) => {
                 .map((actual, i) => compareTables(expected[i], actual))
                 .map((_, index) => index === 1 ? 'pass' : 'fail')
                 .catch(AsyncIterable.as.bind(0, 'fail')).takeLast(1)
-                .pipe(reply.type('text/plain; charset=utf-8').asStream());
+                .pipe(reply.type('text/plain; charset=utf-8').stream());
         })
         .inject({ ...POST_TABLE, payload }).then((res) => {
             t.strictEqual(res.headers['content-type'], 'text/plain; charset=utf-8');

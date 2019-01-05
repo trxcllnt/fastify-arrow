@@ -16,7 +16,7 @@ function fastifyArrowPlugin(fastify, opts, next) {
     // Add a stub octet-stream parser so fastify doesn't reject payloads with content-type octet-stream
     fastify.addContentTypeParser('octet-stream', opts, (_, next) => { next(); });
 
-    fastify.decorateReply('asStream', replyAsStream);
+    fastify.decorateReply('stream', replyAsStream);
     fastify.decorateRequest('recordBatches', readRecordBatches);
 
     next();
@@ -31,15 +31,9 @@ function replyAsStream(xs = { objectMode: false }) {
  * @returns AsyncIterable<RecordBatchReader>
  */
 function readRecordBatches() {
-    const source = this.isMultipart() ? fromMultipart(this) : this.raw;
-    return AsyncIterable.from(async function* () {
-        const reader = await RecordBatchReader.from(source);
-        try {
-            while (!(await reader.reset().open(false)).closed) {
-                yield reader;
-            }
-        } finally { reader.cancel(); }
-    }());
+    const source = this.isMultipart()
+        ? fromMultipart(this) : this.raw;
+    return AsyncIterable.as(RecordBatchReader.readAll(source));
 }
 
 async function* fromMultipart(request) {
