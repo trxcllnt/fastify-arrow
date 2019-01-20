@@ -32,7 +32,8 @@ function replyAsStream(xs = { objectMode: false }) {
  */
 function readRecordBatches() {
     const source = this.isMultipart()
-        ? fromMultipart(this) : this.raw;
+        ? fromMultipart(this)
+        : this.raw.pipe(new PassThrough());
     return AsyncIterable.as(RecordBatchReader.readAll(source));
 }
 
