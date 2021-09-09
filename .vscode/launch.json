@@ -10,15 +10,15 @@
             "name": "launch test",
             "console": "integratedTerminal",
             // "program": "${workspaceFolder}/test/test-read-form-data.js",
-            "program": "${workspaceFolder}/test/test-read-octet-stream.js",
-            // "program": "${workspaceFolder}/test/test-send-octet-stream.js",
+            // "program": "${workspaceFolder}/test/test-read-octet-stream.js",
+            "program": "${workspaceFolder}/test/test-send-octet-stream.js",
             "skipFiles": [
                 // "<node_internals>/**/*.js",
                 // "${workspaceFolder}/node_modules/**/*.js"
             ],
             "env": {
                 "NODE_NO_WARNINGS": "1",
-                "READABLE_STREAM": "disable"
+                // "READABLE_STREAM": "disable"
             }
         }
     ]
