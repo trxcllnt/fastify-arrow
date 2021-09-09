@@ -73,7 +73,7 @@ function* demoData(batchLen = 10, numBatches = 5) {
             for (let i = -1; ++i < batchLen; str[i] = randstr((num[i] = rand() * (2 ** 4)) | 0));
         })();
         const columns = [Utf8Vector.from(str), FloatVector.from(num)];
-        schema || (schema = Schema.from(columns, ['strings', 'floats']));
+        schema || (schema = new Schema(columns, ['strings', 'floats']));
         yield new RecordBatch(schema, batchLen, columns);
     }
 }
