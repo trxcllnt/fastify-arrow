@@ -19,7 +19,7 @@
   "homepage": "https://github.com/trxcllnt/fastify-arrow#readme",
   "dependencies": {
     "apache-arrow": "^5.0.0",
-    "fastify-multipart": "^4.0.7",
+    "@fastify/multipart": "^6.0.0",
     "fastify-plugin": "^3.0.0",
     "ix": "^4.5.0"
   },

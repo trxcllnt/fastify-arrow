@@ -11,7 +11,7 @@ module.exports = require('fastify-plugin')(fastifyArrowPlugin, {
 function fastifyArrowPlugin(fastify, opts, next) {
 
   if (!fastify.hasRequestDecorator('multipart')) {
-    fastify.register(require('fastify-multipart'), opts);
+    fastify.register(require('@fastify/multipart'), opts);
   }
 
   // Add a stub octet-stream parser so fastify doesn't reject payloads with content-type octet-stream
