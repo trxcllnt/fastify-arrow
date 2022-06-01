@@ -8,15 +8,13 @@ const arrowPlugin = require('../index');
 const { createTable, compareTables } = require('./util');
 const { AsyncIterable, Iterable } = require('ix/Ix.node');
 const {
-  Table, RecordBatch, DataType, FloatVector,
-  RecordBatchReader, RecordBatchStreamWriter
+  Table, DataType,
+  RecordBatchReader, RecordBatchStreamWriter,
+  tableToIPC, tableFromIPC, tableFromArrays, vectorFromArray
 } = require('apache-arrow');
 
 const getHeaders = { 'accepts': `application/octet-stream` };
-const postHeaders = {
-  'accepts': `application/octet-stream`,
-  'content-type': `application/octet-stream`
-};
+const postHeaders = { ...getHeaders, 'content-type': `application/octet-stream` };
 
 test('it should reply with a table', async (t) => {
 
@@ -28,7 +26,7 @@ test('it should reply with a table', async (t) => {
     })
     .inject({ url: `/`, method: `GET`, headers: getHeaders })
     .then((res) => {
-      compareTables(expected, Table.from(res.rawPayload));
+      compareTables(expected, tableFromIPC(res.rawPayload));
       t.strictEqual(res.headers['content-type'], 'application/octet-stream');
     })
     .catch(t.threw);
@@ -48,7 +46,7 @@ test('it should reply with multiple tables', async (t) => {
     .inject({ url: `/`, method: `GET`, headers: getHeaders })
     .then((res) => {
       for (const reader of RecordBatchReader.readAll(res.rawPayload)) {
-        compareTables(expected.shift(), Table.from(reader));
+        compareTables(expected.shift(), tableFromIPC(reader));
       }
       t.strictEqual(res.headers['content-type'], 'application/octet-stream');
     })
@@ -59,29 +57,38 @@ test(`it should accept a table and respond with a different one`, async (t) => {
 
   const expectedIn = createTable();
   const expectedOut = averageFloatCols(expectedIn);
-  const payload = Buffer.from(expectedIn.serialize());
+  const payload = Buffer.from(tableToIPC(expectedIn).buffer);
 
   await Fastify().register(arrowPlugin)
     .post('/', (request, reply) => {
       request.recordBatches()
-        .map(Table.from).map(averageFloatCols)
-        .flatMap(RecordBatchStreamWriter.writeAll)
+        .map(async (reader) => averageFloatCols(new Table(await reader.readAll())))
+        .flatMap((table) => RecordBatchStreamWriter.writeAll(table))
         .pipe(reply.stream({ objectMode: false }));
     })
     .inject({ url: `/`, method: `POST`, headers: postHeaders, payload })
     .then((res) => {
-      compareTables(expectedOut, Table.from(res.rawPayload));
+      debugger;
+      compareTables(expectedOut, tableFromIPC(res.rawPayload));
       t.strictEqual(res.headers['content-type'], 'application/octet-stream');
     })
     .catch(t.threw);
 
+  /**
+   *
+   * @param {Table} table
+   */
   function averageFloatCols(table) {
+    /** @type import('apache-arrow').Field[] */
     const fields = table.schema.fields.filter(DataType.isFloat);
+    /** @type string[] */
     const names = fields.map(({ name }) => `${name}_avg`);
     const averages = fields
-      .map((f) => table.getColumn(f.name))
+      .map((f) => table.getChild(f.name))
       .map((xs) => Iterable.from(xs).average())
-      .map((avg) => FloatVector.from(new Float32Array([avg])))
-    return new Table(RecordBatch.from(averages, names));
+      .map((avg) => vectorFromArray(new Float32Array([avg])));
+    return tableFromArrays(names.reduce((xs, name, i) => ({
+      ...xs, [name]: averages[i]
+    }), {}));
   }
 });

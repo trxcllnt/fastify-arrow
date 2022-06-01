@@ -1,4 +1,4 @@
-const { PassThrough } = require('stream');
+const { Readable, PassThrough } = require('stream');
 const { as: asAsyncIterable } = require('ix/asynciterable');
 const { AsyncByteQueue, AsyncByteStream, RecordBatchReader } = require('apache-arrow');
 
@@ -25,7 +25,7 @@ function fastifyArrowPlugin(fastify, opts, next) {
 
 function replyAsStream(xs = { objectMode: false }) {
   const stream = new PassThrough(xs);
-  this.send(stream)
+  this.send(stream);
   return stream;
 }
 
@@ -33,10 +33,10 @@ function replyAsStream(xs = { objectMode: false }) {
  * @returns AsyncIterable<RecordBatchReader>
  */
 function readRecordBatches() {
-  const source = this.isMultipart()
-    ? fromMultipart(this)
-    : this.raw.pipe(new PassThrough());
-  return asAsyncIterable(RecordBatchReader.readAll(source));
+  if (this.isMultipart()) {
+    return asAsyncIterable(RecordBatchReader.readAll(fromMultipart(this)));
+  }
+  return asAsyncIterable(RecordBatchReader.readAll(Readable.from(this.raw)));
 }
 
 async function* fromMultipart(request) {

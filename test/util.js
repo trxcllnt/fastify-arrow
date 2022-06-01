@@ -1,10 +1,10 @@
 const randomatic = require('randomatic');
 const {
-  Schema, Field, Table, RecordBatch,
-  Utf8, Utf8Vector,
-  Float32, FloatVector,
+  Table, Utf8,
+  RecordBatchReader,
+  RecordBatchStreamWriter,
+  tableFromArrays, vectorFromArray,
   util: { createElementComparator },
-  RecordBatchStreamWriter
 } = require('apache-arrow');
 
 module.exports = {
@@ -18,37 +18,31 @@ const str = ((opts) =>
 )({ chars: `abcdefghijklmnopqrstuvwxyz0123456789_` });
 
 function createTable() {
-  const schema = new Schema([new Field('str', new Utf8()), new Field('num', new Float32())]);
-  const batches = [
-    new RecordBatch(schema, 3, [
-      Utf8Vector.from([str(5), str(5), str(5)]),
-      FloatVector.from(Float32Array.from([1, 2, 3]))
-    ]),
-    new RecordBatch(schema, 3, [
-      Utf8Vector.from([str(5), str(5), str(5)]),
-      FloatVector.from(Float32Array.from([4, 5, 6]))
-    ]),
-    new RecordBatch(schema, 3, [
-      Utf8Vector.from([str(5), str(5), str(5)]),
-      FloatVector.from(Float32Array.from([7, 8, 9]))
-    ])
-  ];
-  return new Table(schema, batches);
+  const makeTable = () => tableFromArrays({
+    str: vectorFromArray([
+      str(5),
+      str(5),
+      str(5),
+    ], new Utf8),
+    num: vectorFromArray(new Float32Array([
+      Math.random() * (2 ** 4),
+      Math.random() * (2 ** 4),
+      Math.random() * (2 ** 4),
+    ])),
+  });
+  return makeTable().concat(makeTable(), makeTable());
 }
 
 function compareTables(expected, actual) {
-  if (actual.length !== expected.length) {
-    throw new Error(`length: ${actual.length} !== ${expected.length}`);
+  if (actual.numRows !== expected.numRows) {
+    throw new Error(`numRows: ${actual.numRows} !== ${expected.numRows}`);
   }
   if (actual.numCols !== expected.numCols) {
     throw new Error(`numCols: ${actual.numCols} !== ${expected.numCols}`);
   }
   (() => {
-    const getChildAtFn = expected instanceof Table ? 'getColumnAt' : 'getChildAt';
     for (let i = -1, n = actual.numCols; ++i < n;) {
-      const v1 = actual[getChildAtFn](i);
-      const v2 = expected[getChildAtFn](i);
-      compareVectors(v1, v2);
+      compareVectors(actual.getChildAt(i), expected.getChildAt(i));
     }
   })();
 }
@@ -97,7 +91,8 @@ function compareVectors(actual, expected) {
 async function validateUpload(expected, request, reply) {
   let i = 0, pass = true;
   for await (const batches of request.recordBatches()) {
-    const actual = await Table.from(batches);
+    const reader = await RecordBatchReader.from(batches);
+    const actual = new Table(await reader.readAll());
     try {
       compareTables(expected[i], actual);
     } catch (err) {
@@ -109,25 +104,5 @@ async function validateUpload(expected, request, reply) {
 }
 
 if (require.main === module) {
-
-  RecordBatchStreamWriter.writeAll(demoData()).pipe(process.stdout);
-
-  function* demoData(batchLen = 10, numBatches = 5) {
-    const rand = Math.random.bind(Math);
-    const randstr = ((randomatic, opts) =>
-      (len) => randomatic('?', len, opts)
-    )(require('randomatic'), { chars: `abcdefghijklmnopqrstuvwxyz0123456789_` });
-
-    let schema;
-    for (let i = -1; ++i < numBatches;) {
-      const str = new Array(batchLen);
-      const num = new Float32Array(batchLen);
-      (() => {
-        for (let i = -1; ++i < batchLen; str[i] = randstr((num[i] = rand() * (2 ** 4)) | 0));
-      })();
-      const columns = [Utf8Vector.from(str), FloatVector.from(num)];
-      schema || (schema = Schema.from(columns, ['strings', 'floats']));
-      yield new RecordBatch(schema, batchLen, columns);
-    }
-  }
+  RecordBatchStreamWriter.writeAll(createTable()).pipe(process.stdout);
 }

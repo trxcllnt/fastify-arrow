@@ -18,15 +18,15 @@
   },
   "homepage": "https://github.com/trxcllnt/fastify-arrow#readme",
   "dependencies": {
-    "apache-arrow": "^5.0.0",
+    "apache-arrow": "^8.0.0",
     "@fastify/multipart": "^6.0.0",
-    "fastify-plugin": "^3.0.0",
-    "ix": "^4.5.0"
+    "fastify-plugin": "^3.0.1",
+    "ix": "^4.5.2"
   },
   "devDependencies": {
-    "fastify": "^3.21.0",
+    "fastify": "^3.29.0",
     "form-data": "^4.0.0",
     "randomatic": "^3.1.1",
-    "tap": "^15.0.9"
+    "tap": "^16.2.0"
   }
 }

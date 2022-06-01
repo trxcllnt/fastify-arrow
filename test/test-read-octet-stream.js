@@ -2,13 +2,14 @@ const { test } = require('tap');
 const Fastify = require('fastify');
 const arrowPlugin = require('../index');
 const { createTable, validateUpload } = require('./util');
+const { tableToIPC } = require('apache-arrow');
 
 const POST_TABLE = { url: `/`, method: `POST`, headers: { 'content-type': `application/octet-stream` } };
 
 test(`it should read a table as an octet stream`, async (t) => {
 
   const expected = createTable();
-  const payload = Buffer.from(expected.serialize());
+  const payload = Buffer.from(tableToIPC(expected).buffer);
 
   await Fastify().register(arrowPlugin)
     .post('/', validateUpload.bind(null, [expected]))
@@ -22,7 +23,7 @@ test(`it should read a table as an octet stream`, async (t) => {
 test(`it should read multiple tables as an octet stream`, async (t) => {
 
   const expected = [createTable(), createTable()];
-  const payload = Buffer.concat(expected.map((x) => x.serialize()));
+  const payload = Buffer.concat(expected.map((x) => tableToIPC(x)));
 
   await Fastify().register(arrowPlugin)
     .post('/', validateUpload.bind(null, expected))

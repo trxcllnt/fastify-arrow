@@ -1,9 +1,11 @@
 # fastify-arrow
+
 A Fastify plugin for sending and receiving columnar tables with [Apache Arrow](https://github.com/apache/arrow) as optimized, zero-copy binary streams.
 
 This module decorates the fastify `Request` with a `recordBatches()` method that returns an [IxJS `AsyncIterable`](https://github.com/ReactiveX/IxJS#asynciterable) of Arrow `RecordBatchReaders`.
 
 Each inner `RecordBatchReader` is an `AsyncIterableIterator<RecordBatch>`, leading to the following signature:
+
 ```ts
 Request.prototype.recordBatches = () => AsyncIterable<AsyncIterable<RecordBatch>>;
 ```
@@ -11,7 +13,8 @@ Request.prototype.recordBatches = () => AsyncIterable<AsyncIterable<RecordBatch>
 `AsyncIterable` is native in JS via the `[Symbol.asyncIterator]()` and `for await...of` protocols. You can create an `Ix.AsyncIterable` from a `NodeJS.ReadableStream` with `AsyncIterable.fromNodeStream()`. You can also `pipe()` an `AsyncIterable` to a `NodeJS.WritableStream` to more easily transition between the functional and imperative APIs available in node and Arrow.
 
 Arrow RecordBatches are full-width, length-wise slices of a Table. To illustrate, the following table contains three RecordBatches, and each RecordBatch has three rows:
-```
+
+```shell
 "row_id" |      "utf8: Utf8" |  "floats: Float32"    ___
        0 |          "sh679x" |  6.308125972747803       |
        1 |    "u9joo443zl38" | 12.003445625305176       | <-- RecordBatch 1
@@ -25,21 +28,31 @@ Arrow RecordBatches are full-width, length-wise slices of a Table. To illustrate
 ```
 
 You can generate a table similar to the above by installing the dependencies, then executing the following command from the repository TLD:
-```sh
+
+```shell
 $ node test/util.js | npx arrow2csv
+  "row_id" |     "str: Utf8" | "num: Float32"
+         1 |         "f_sry" |              1
+         2 |         "ogbwi" |              2
+         3 |         "ny5l_" |              3
+         4 |         "hi6r5" |              1
+         5 |         "_5_zf" |              2
+         6 |         "di9mu" |              3
+         7 |         "gbswg" |              1
+         8 |         "alm8f" |              2
+         9 |         "qrzah" |              3
 ```
 
 This module also decorates fastify's `Reply` with a convenient `stream()` method, returning a pass-through stream hooked up to the http `ServerResponse`.
 
-### Send Arrow RecordBatch streams
+## Send Arrow RecordBatch streams
 
 ```js
 const Fastify = require('fastify');
 const arrowPlugin = require('fastify-arrow');
 const fastify = Fastify().register(require('fastify-arrow'));
 const {
-    Schema, DataType,
-    Table, RecordBatch,
+    tableFromIPC, vectorFromArray,
     Utf8Vector, FloatVector,
     RecordBatchStreamWriter,
 } = require('apache-arrow');
@@ -56,7 +69,7 @@ fastify.get(`/data`, (request, reply) => {
             'accepts': `application/octet-stream`
         }
     });
-    console.log(Table.from(res.body)); // Table<{ strings: Utf8, floats: Float32 }>
+    console.log(tableFromIPC(res.body)); // Table<{ strings: Utf8, floats: Float32 }>
 })();
 
 function* demoData(batchLen = 10, numBatches = 5) {
@@ -72,14 +85,16 @@ function* demoData(batchLen = 10, numBatches = 5) {
         (() => {
             for (let i = -1; ++i < batchLen; str[i] = randstr((num[i] = rand() * (2 ** 4)) | 0));
         })();
-        const columns = [Utf8Vector.from(str), FloatVector.from(num)];
-        schema || (schema = new Schema(columns, ['strings', 'floats']));
-        yield new RecordBatch(schema, batchLen, columns);
+        const table = tableFromArrays({
+            strings: vectorFromArray(str),
+            floats: vectorFromArray(num)
+        });
+        yield* table.batches;
     }
 }
 ```
 
-### Receive Arrow RecordBatch streams
+## Receive Arrow RecordBatch streams
 
 ```js
 const { AsyncIterable } = require('ix');
@@ -106,12 +121,12 @@ fastify.post(`/update`, (request, reply) => {
 })();
 ```
 
-### Send and receive Arrow RecordBatch streams
+## Send and receive Arrow RecordBatch streams
 
 ```js
 fastify.post(`/avg_floats`, (request, reply) => {
     request.recordBatches()
-        .map((recordBatches) => averageFloatCols(Table.from(recordBatches)))
+        .map(async (reader) => averageFloatCols(new Table(await reader.readAll())))
         .pipe(RecordBatchStreamWriter.throughNode({ autoDestroy: false }))
         .pipe(reply.type('application/octet-stream').stream());
 });
@@ -126,16 +141,18 @@ fastify.post(`/avg_floats`, (request, reply) => {
             'content-type':  `application/octet-stream`
         },
     });
-    console.log(Table.from(res.body)); // Table<{ floats_avg: Float32 }>
+    console.log(tableFromIPC(res.body)); // Table<{ floats_avg: Float32 }>
 })();
 
 function averageFloatCols(table) {
     const fields = table.schema.fields.filter(DataType.isFloat);
     const names = fields.map(({ name }) => `${name}_avg`);
     const averages = fields
-        .map((f) => table.getColumn(f.name))
+        .map((f) => table.getChild(f.name))
         .map((xs) => Iterable.from(xs).average())
-        .map((avg) => FloatVector.from(new Float32Array([avg])))
-    return new Table(RecordBatch.from(averages, names));
+        .map((avg) => vectorFromArray(new Float32Array([avg])))
+    return tableFromArrays(names.reduce((xs, name, i) => ({
+      ...xs, [name]: averages[i]
+    }), {}));
 }
 ```
