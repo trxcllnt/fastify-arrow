@@ -1,6 +1,6 @@
 {
   "name": "fastify-arrow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Fastify plugin for sending and receiving Apache Arrow data",
   "main": "index.js",
   "scripts": {
