@@ -64,7 +64,7 @@ fastify.get(`/data`, (request, reply) => {
 });
 
 (async () => {
-    const res = await fastfiy.inject({
+    const res = await fastify.inject({
         url: '/data', method: `GET`, headers: {
             'accepts': `application/octet-stream`
         }
@@ -110,7 +110,7 @@ fastify.post(`/update`, (request, reply) => {
 });
 
 (async () => {
-    const res = await fastfiy.inject({
+    const res = await fastify.inject({
         url: '/update', method: `POST`, headers: {
             'accepts':  `text/plain; charset=utf-8`,
             'content-type':  `application/octet-stream`
@@ -133,7 +133,7 @@ fastify.post(`/avg_floats`, (request, reply) => {
 
 (async () => {
     const writer = RecordBatchStreamWriter.writeAll(demoData());
-    const averages = await fastfiy.inject({
+    const averages = await fastify.inject({
         url: '/avg_floats', method: `POST`,
         payload: writer.toNodeStream(),
         headers: {
