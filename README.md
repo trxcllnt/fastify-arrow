@@ -52,6 +52,7 @@ const Fastify = require('fastify');
 const arrowPlugin = require('fastify-arrow');
 const fastify = Fastify().register(require('fastify-arrow'));
 const {
+    tableFromArrays,
     tableFromIPC, vectorFromArray,
     Utf8Vector, FloatVector,
     RecordBatchStreamWriter,
@@ -85,7 +86,7 @@ function* demoData(batchLen = 10, numBatches = 5) {
         (() => {
             for (let i = -1; ++i < batchLen; str[i] = randstr((num[i] = rand() * (2 ** 4)) | 0));
         })();
-        const table = tableFromArray({
+        const table = tableFromArrays({
             strings: vectorFromArray(str),
             floats: vectorFromArray(num)
         });
@@ -151,7 +152,7 @@ function averageFloatCols(table) {
         .map((f) => table.getChild(f.name))
         .map((xs) => Iterable.from(xs).average())
         .map((avg) => vectorFromArray(new Float32Array([avg])))
-    return tableFromArray(names.reduce((xs, name, i) => ({
+    return tableFromArrays(names.reduce((xs, name, i) => ({
       ...xs, [name]: averages[i]
     }), {}));
 }
