@@ -85,7 +85,7 @@ function* demoData(batchLen = 10, numBatches = 5) {
         (() => {
             for (let i = -1; ++i < batchLen; str[i] = randstr((num[i] = rand() * (2 ** 4)) | 0));
         })();
-        const table = tableFromArrays({
+        const table = tableFromArray({
             strings: vectorFromArray(str),
             floats: vectorFromArray(num)
         });
@@ -151,7 +151,7 @@ function averageFloatCols(table) {
         .map((f) => table.getChild(f.name))
         .map((xs) => Iterable.from(xs).average())
         .map((avg) => vectorFromArray(new Float32Array([avg])))
-    return tableFromArrays(names.reduce((xs, name, i) => ({
+    return tableFromArray(names.reduce((xs, name, i) => ({
       ...xs, [name]: averages[i]
     }), {}));
 }
